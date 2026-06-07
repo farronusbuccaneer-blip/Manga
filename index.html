@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>4コマ漫画吹き出しエディタ - Manga Speech Bubble Editor</title>
+  <!-- FontAwesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts for premium typography -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Outfit:wght@300;400;600;800&family=Kosugi+Maru&family=Sawarabi+Mincho&display=swap" rel="stylesheet">
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo">
+        <i class="fa-solid fa-comments-dollar"></i>
+        <span>MangaBubble <span>Studio</span></span>
+      </div>
+      <div class="header-actions">
+        <button id="theme-toggle" class="btn-icon" title="テーマ切り替え">
+          <i class="fa-solid fa-moon"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="main-content">
+      <!-- Left: Workspace Area -->
+      <section class="workspace-area">
+        <div class="canvas-outer-wrapper">
+          <!-- The 4:5 Aspect Ratio Container -->
+          <div id="manga-canvas-container" class="canvas-container empty">
+            <!-- Background Image (Centered 3:4) -->
+            <img id="manga-bg-image" class="manga-background" alt="Uploaded Manga" style="display: none;">
+            
+            <!-- Interactive Bubbles Overlay -->
+            <div id="bubbles-overlay" class="bubbles-overlay"></div>
+            
+            <!-- Upload Placeholder Grid -->
+            <div id="upload-placeholder" class="upload-placeholder">
+              <i class="fa-solid fa-cloud-arrow-up upload-icon"></i>
+              <h3>4コマ漫画画像をアップロード (3:4推奨)</h3>
+              <p>ここにドラッグ＆ドロップ、またはファイルを選択</p>
+              <input type="file" id="manga-upload-input" accept="image/*" class="file-input-hidden">
+              <button class="btn btn-primary" onclick="document.getElementById('manga-upload-input').click()">画像を選択する</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right: Sidebar Controls -->
+      <aside class="sidebar-area">
+        <!-- Tab Navigation (for mobile friendliness) -->
+        <div class="sidebar-tabs">
+          <button class="tab-btn active" data-tab="tab-input"><i class="fa-solid fa-file-code"></i> テキスト入力</button>
+          <button class="tab-btn" data-tab="tab-editor" id="tab-btn-editor"><i class="fa-solid fa-sliders"></i> 吹き出し編集</button>
+        </div>
+
+        <div class="tab-content active" id="tab-input">
+          <!-- Step 1: Upload Status / Info -->
+          <div class="control-group">
+            <h4 class="group-title"><i class="fa-solid fa-image"></i> 1. 画像情報</h4>
+            <div class="image-info-box" id="image-info-box">
+              <p class="text-muted">画像がアップロードされていません。</p>
+            </div>
+          </div>
+
+          <!-- Step 2: Markdown Input -->
+          <div class="control-group">
+            <h4 class="group-title">
+              <i class="fa-solid fa-code"></i> 2. マークダウンテキスト入力
+              <span class="info-tooltip" title="<sectionX>タグでコマを指定し、<rowX>タグで吹き出しを指定します。/で改行します。">
+                <i class="fa-solid fa-circle-question"></i>
+              </span>
+            </h4>
+            <textarea id="markdown-input" class="markdown-textarea" placeholder="マークダウンを入力してください..."><title>私たちの予算会議</title>
+<section1>
+  <row1>We need to check the... what was it... / 私たちは確認する必要があります、その…何だっけ…</row1>
+  <row2>Oh no! The word completely slipped my mind! / やばい！単語が完全に頭から消えた！</row2>
+</section1>
+
+<section2>
+  <row1>...Am I freezing? Say something! / …私、地蔵になってる？何か言わなきゃ！</row1>
+  <row2>(Awkward fake smile with cold sweat) / （冷や汗を流しながら、引きつった愛想笑い）</row2>
+</section2>
+
+<section3>
+  <row1>What's the word I'm looking for? / 私が探している単語は何だっけ？</row1>
+</section3>
+
+<section4>
+  <row1>Do you mean "Budget"? / 「予算」のことかい？</row1>
+  <row2>Yes, exactly! Thank you! / そう、それです！ありがとう！</row2>
+</section4></textarea>
+            
+            <div class="control-row">
+              <label for="layout-select">パネルレイアウト:</label>
+              <select id="layout-select" class="form-select">
+                <option value="2x2" selected>2x2 グリッド (①左上→②右上→③左下→④右下)</option>
+                <option value="1x4">1x4 縦一列 (上から順に①→②→③→④)</option>
+                <option value="center">中央一括配置</option>
+              </select>
+            </div>
+
+            <button id="btn-parse-distribute" class="btn btn-accent btn-full mt-2">
+              <i class="fa-solid fa-wand-magic-sparkles"></i> テキストを解析して配置
+            </button>
+          </div>
+
+          <!-- Export Actions -->
+          <div class="control-group">
+            <h4 class="group-title"><i class="fa-solid fa-download"></i> 3. 画像の書き出し</h4>
+            <p class="text-xs text-muted mb-2">3:4画像は左右に余白（白単色）が追加され、4:5比率で保存されます。</p>
+            <div class="control-row">
+              <label for="export-scale">出力解像度:</label>
+              <select id="export-scale" class="form-select">
+                <option value="1">標準 (等倍)</option>
+                <option value="2" selected>高解像度 (2倍)</option>
+                <option value="3">超高解像度 (3倍)</option>
+              </select>
+            </div>
+            <button id="btn-export-image" class="btn btn-success btn-full mt-2" disabled>
+              <i class="fa-solid fa-file-image"></i> 4:5画像をダウンロード
+            </button>
+          </div>
+        </div>
+
+        <!-- Tab 2: Editor Properties (Visible/Enabled when a bubble is selected) -->
+        <div class="tab-content" id="tab-editor">
+          <div id="editor-no-selection" class="no-selection-message">
+            <i class="fa-solid fa-arrow-pointer"></i>
+            <p>編集する吹き出しをキャンバス上で選択するか、新しく追加してください。</p>
+            <button id="btn-add-bubble" class="btn btn-secondary mt-2">
+              <i class="fa-solid fa-plus"></i> 新しい吹き出しを追加
+            </button>
+          </div>
+
+          <div id="editor-controls" class="editor-controls" style="display: none;">
+            <!-- Bubble Type -->
+            <div class="control-group">
+              <h4 class="group-title">吹き出しの形状</h4>
+              <div class="bubble-type-selector">
+                <button class="type-btn active" data-type="ellipse" title="楕円形">
+                  <i class="fa-solid fa-comment"></i><span>楕円</span>
+                </button>
+                <button class="type-btn" data-type="rect" title="角丸長方形">
+                  <i class="fa-solid fa-message"></i><span>角丸</span>
+                </button>
+                <button class="type-btn" data-type="cloud" title="思考吹き出し">
+                  <i class="fa-solid fa-cloud"></i><span>思考</span>
+                </button>
+                <button class="type-btn" data-type="scream" title="ギザギザ吹き出し">
+                  <i class="fa-solid fa-burst"></i><span>叫び</span>
+                </button>
+                <button class="type-btn" data-type="none" title="テキストのみ">
+                  <i class="fa-solid fa-font"></i><span>テキストのみ</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Text Content -->
+            <div class="control-group">
+              <h4 class="group-title">テキスト編集</h4>
+              <textarea id="bubble-text-input" class="bubble-text-input" placeholder="セリフを入力してください..."></textarea>
+            </div>
+
+            <!-- Typography -->
+            <div class="control-group">
+              <h4 class="group-title">文字スタイル</h4>
+              
+              <!-- Font Size -->
+              <div class="slider-control">
+                <div class="slider-label">
+                  <span>文字サイズ</span>
+                  <input type="number" id="font-size-num" class="num-input" min="10" max="100" value="18"><span>px</span>
+                </div>
+                <input type="range" id="font-size-slider" min="10" max="100" value="18" class="range-slider">
+              </div>
+
+              <!-- Font Family -->
+              <div class="control-row">
+                <label for="font-family-select">フォント:</label>
+                <select id="font-family-select" class="form-select">
+                  <option value="'Segoe UI', 'Noto Sans JP', sans-serif" selected>Segoe UI + Noto Sans JP (標準ゴシック)</option>
+                  <option value="'Kosugi Maru', sans-serif">丸ゴシック (Kosugi Maru)</option>
+                  <option value="'Sawarabi Mincho', serif">明朝体 (Sawarabi Mincho)</option>
+                  <option value="sans-serif">システムゴシック</option>
+                  <option value="monospace">等幅フォント</option>
+                </select>
+              </div>
+
+              <!-- Text Alignment -->
+              <div class="control-row">
+                <label>文字揃え:</label>
+                <div class="btn-group">
+                  <button class="align-btn active" data-align="center" title="中央揃え"><i class="fa-solid fa-align-center"></i></button>
+                  <button class="align-btn" data-align="left" title="左揃え"><i class="fa-solid fa-align-left"></i></button>
+                  <button class="align-btn" data-align="right" title="右揃え"><i class="fa-solid fa-align-right"></i></button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Colors & Border -->
+            <div class="control-group">
+              <h4 class="group-title">配色と外枠</h4>
+              
+              <!-- Color Pickers -->
+              <div class="color-picker-grid">
+                <div class="color-control-item">
+                  <label for="color-text">文字色</label>
+                  <div class="color-picker-wrapper">
+                    <input type="color" id="color-text" value="#000000">
+                  </div>
+                </div>
+                <div class="color-control-item" id="color-bg-wrapper">
+                  <label for="color-bg">背景色</label>
+                  <div class="color-picker-wrapper">
+                    <input type="color" id="color-bg" value="#ffffff">
+                  </div>
+                </div>
+                <div class="color-control-item" id="color-border-wrapper">
+                  <label for="color-border">枠線色</label>
+                  <div class="color-picker-wrapper">
+                    <input type="color" id="color-border" value="#000000">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Border Width -->
+              <div class="slider-control mt-2" id="border-width-wrapper">
+                <div class="slider-label">
+                  <span>枠線の太さ</span>
+                  <span id="border-width-val">2px</span>
+                </div>
+                <input type="range" id="border-width-slider" min="0" max="15" value="2" class="range-slider">
+              </div>
+
+              <!-- Tail Toggle -->
+              <div class="control-row checkbox-row" id="tail-toggle-wrapper">
+                <input type="checkbox" id="tail-toggle" checked>
+                <label for="tail-toggle">吹き出しのしっぽ（引き出し線）を表示する</label>
+              </div>
+            </div>
+
+            <!-- Layers & Ordering -->
+            <div class="control-group">
+              <h4 class="group-title">配置操作</h4>
+              <div class="actions-grid">
+                <button id="btn-bring-front" class="btn btn-secondary"><i class="fa-solid fa-layer-group"></i> 最前面</button>
+                <button id="btn-send-back" class="btn btn-secondary"><i class="fa-solid fa-layer-group-down"></i> 最背面</button>
+                <button id="btn-duplicate" class="btn btn-secondary"><i class="fa-solid fa-copy"></i> 複製</button>
+                <button id="btn-delete" class="btn btn-danger"><i class="fa-solid fa-trash-can"></i> 削除</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </main>
+    
+    <!-- Footer / Keyboard Shortcuts -->
+    <footer class="app-footer">
+      <div class="shortcuts">
+        <span>ショートカット: <kbd>Delete</kbd> 削除 | <kbd>Esc</kbd> 選択解除 | ドラッグで移動 | ハンドルでサイズ変更</span>
+      </div>
+      <div class="author">
+        <span>© 2026 MangaBubble</span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Main Application Script -->
+  <script src="app.js"></script>
+</body>
+</html>
