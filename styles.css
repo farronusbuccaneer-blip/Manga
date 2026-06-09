@@ -784,7 +784,8 @@ input, textarea, select, button {
 
 .bubble-text-content {
   width: 100%;
-  word-break: break-all;
+  word-break: normal;
+  overflow-wrap: break-word;
   white-space: pre-wrap;
   line-height: 1.35;
   user-select: none;

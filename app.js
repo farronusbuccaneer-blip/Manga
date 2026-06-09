@@ -1173,18 +1173,16 @@ function wrapSegmentsCanvas(ctx, segments, maxW) {
       continue;
     }
     
-    const isEnglish = /[a-zA-Z]/.test(seg.text);
-    let tokens;
-    if (isEnglish) {
-      tokens = seg.text.split(/(\s+)/);
-    } else {
-      tokens = seg.text.split('');
-    }
+    // Tokenize text: spaces, English/alphanumeric words, or single characters (Japanese/punctuation)
+    const tokens = seg.text.match(/\s+|[a-zA-Z0-9'’\-]+|./g) || [];
     
     let activeSegText = '';
     for (let token of tokens) {
       let testWidth = ctx.measureText(token).width;
+      
+      // If adding this token exceeds maxW
       if (currentLineWidth + testWidth > maxW && currentLineWidth > 0) {
+        // Wrap to the next line
         if (activeSegText !== '') {
           currentLine.push({ text: activeSegText, color: seg.color });
           activeSegText = '';
@@ -1192,9 +1190,35 @@ function wrapSegmentsCanvas(ctx, segments, maxW) {
         lines.push(currentLine);
         currentLine = [];
         currentLineWidth = 0;
+        
+        // If it's a space at the start of a new line, we can skip it
+        if (/^\s+$/.test(token)) {
+          continue;
+        }
       }
-      activeSegText += token;
-      currentLineWidth += testWidth;
+      
+      // If the token itself is wider than maxW (e.g. an extremely long English word)
+      if (testWidth > maxW) {
+        // We must break this token character-by-character to prevent overflow
+        const chars = token.split('');
+        for (let char of chars) {
+          let charW = ctx.measureText(char).width;
+          if (currentLineWidth + charW > maxW && currentLineWidth > 0) {
+            if (activeSegText !== '') {
+              currentLine.push({ text: activeSegText, color: seg.color });
+              activeSegText = '';
+            }
+            lines.push(currentLine);
+            currentLine = [];
+            currentLineWidth = 0;
+          }
+          activeSegText += char;
+          currentLineWidth += charW;
+        }
+      } else {
+        activeSegText += token;
+        currentLineWidth += testWidth;
+      }
     }
     
     if (activeSegText !== '') {
