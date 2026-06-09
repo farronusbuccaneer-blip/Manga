@@ -651,11 +651,6 @@ function renderBubbles() {
     const textSpan = document.createElement('span');
     textSpan.className = 'bubble-text-content';
     
-    // Support bold title
-    if (bubble.panel === 0) {
-      textSpan.style.fontWeight = 'bold';
-    }
-    
     // Support red text tags
     textSpan.innerHTML = formatBubbleTextToHTML(bubble.text);
     textSpan.style.color = bubble.textColor;
@@ -1260,9 +1255,8 @@ function drawBubbleOnCanvas(ctx, bubble, canvasW, canvasH) {
   // Scale font size dynamically relative to export canvas width
   const fontSize = bubble.fontSize * (canvasW / 1000);
   
-  // Support bold font for title
-  const isBold = bubble.panel === 0;
-  ctx.font = `${isBold ? 'bold ' : ''}${fontSize}px ${bubble.fontFamily}`;
+  // All text inside bubbles is bold
+  ctx.font = `bold ${fontSize}px ${bubble.fontFamily}`;
   ctx.textBaseline = 'middle';
   
   // Horizontal margins inside the bubble (using fixed scaled padding to prevent overflows)
