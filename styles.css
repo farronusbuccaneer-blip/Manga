@@ -730,12 +730,11 @@ input, textarea, select, button {
 /* --- Interactive Bubble Element inside Canvas --- */
 .bubble-element {
   position: absolute;
-  min-width: 40px;
-  min-height: 40px;
   z-index: 10;
   box-sizing: border-box;
   overflow: visible; /* Required so SVG elements can exceed bounding box */
   pointer-events: auto; /* Catch pointer interactions for dragging/resizing */
+  touch-action: none; /* Prevent default touch scrolling/gestures on the bubble */
 }
 
 /* Selected state outline */
@@ -882,6 +881,12 @@ body[data-action="resizing-n"], body[data-action="resizing-n"] * { cursor: ns-re
 body[data-action="resizing-s"], body[data-action="resizing-s"] * { cursor: ns-resize !important; }
 body[data-action="resizing-e"], body[data-action="resizing-e"] * { cursor: ew-resize !important; }
 body[data-action="resizing-w"], body[data-action="resizing-w"] * { cursor: ew-resize !important; }
+
+/* Prevent workspace scrolling during active dragging/resizing on mobile */
+body[data-action] .workspace-area {
+  overflow: hidden !important;
+  touch-action: none !important;
+}
 
 /* --- Footer & Helpers --- */
 .app-footer {

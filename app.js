@@ -448,29 +448,38 @@ function getBubblePathData(bubble, width, height) {
       const baseW = Math.min(24, width * 0.25);
       
       pathD = `M ${r} 0 `;
-      if (minD === dTop && tx > r && tx < width - r) {
-        pathD += `L ${tx - baseW/2} 0 L ${tx} ${ty} L ${tx + baseW/2} 0 L ${width - r} 0 `;
+      
+      // Top Edge
+      if (minD === dTop) {
+        const baseCenter = Math.max(r + baseW/2, Math.min(width - r - baseW/2, tx));
+        pathD += `L ${baseCenter - baseW/2} 0 L ${tx} ${ty} L ${baseCenter + baseW/2} 0 L ${width - r} 0 `;
       } else {
         pathD += `L ${width - r} 0 `;
       }
       pathD += `A ${r} ${r} 0 0 1 ${width} ${r} `;
       
-      if (minD === dRight && ty > r && ty < height - r) {
-        pathD += `L ${width} ${ty - baseW/2} L ${tx} ${ty} L ${width} ${ty + baseW/2} L ${width} ${height - r} `;
+      // Right Edge
+      if (minD === dRight) {
+        const baseCenter = Math.max(r + baseW/2, Math.min(height - r - baseW/2, ty));
+        pathD += `L ${width} ${baseCenter - baseW/2} L ${tx} ${ty} L ${width} ${baseCenter + baseW/2} L ${width} ${height - r} `;
       } else {
         pathD += `L ${width} ${height - r} `;
       }
       pathD += `A ${r} ${r} 0 0 1 ${width - r} ${height} `;
       
-      if (minD === dBottom && tx > r && tx < width - r) {
-        pathD += `L ${tx + baseW/2} ${height} L ${tx} ${ty} L ${tx - baseW/2} ${height} L ${r} ${height} `;
+      // Bottom Edge
+      if (minD === dBottom) {
+        const baseCenter = Math.max(r + baseW/2, Math.min(width - r - baseW/2, tx));
+        pathD += `L ${baseCenter + baseW/2} ${height} L ${tx} ${ty} L ${baseCenter - baseW/2} ${height} L ${r} ${height} `;
       } else {
         pathD += `L ${r} ${height} `;
       }
       pathD += `A ${r} ${r} 0 0 1 0 ${height - r} `;
       
-      if (minD === dLeft && ty > r && ty < height - r) {
-        pathD += `L 0 ${ty + baseW/2} L ${tx} ${ty} L 0 ${ty - baseW/2} L 0 ${r} `;
+      // Left Edge
+      if (minD === dLeft) {
+        const baseCenter = Math.max(r + baseW/2, Math.min(height - r - baseW/2, ty));
+        pathD += `L 0 ${baseCenter + baseW/2} L ${tx} ${ty} L 0 ${baseCenter - baseW/2} L 0 ${r} `;
       } else {
         pathD += `L 0 ${r} `;
       }
