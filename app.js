@@ -437,21 +437,62 @@ function getBubblePathData(bubble, width, height) {
       pathD = `M ${cx - rx} ${cy} A ${rx} ${ry} 0 1 0 ${cx + rx} ${cy} A ${rx} ${ry} 0 1 0 ${cx - rx} ${cy} Z`;
     }
   } else if (bubble.type === 'rect') {
-    const r = Math.min(15, rx, ry);
+    const r = Math.min(width * 0.15, height * 0.15);
     if (hasTail) {
-      const dTop = Math.abs(ty);
-      const dBottom = Math.abs(ty - height);
-      const dLeft = Math.abs(tx);
-      const dRight = Math.abs(tx - width);
-      const minD = Math.min(dTop, dBottom, dLeft, dRight);
+      const cx = width / 2;
+      const cy = height / 2;
+      const dx = tx - cx;
+      const dy = ty - cy;
       
-      const baseW = Math.min(24, width * 0.25);
+      let edge = 'bottom';
+      let baseCenter = cx;
+      
+      if (dx !== 0 || dy !== 0) {
+        const tCandidates = [];
+        
+        if (dx > 0) {
+          tCandidates.push({ t: (width - cx) / dx, edge: 'right' });
+        } else if (dx < 0) {
+          tCandidates.push({ t: -cx / dx, edge: 'left' });
+        }
+        
+        if (dy > 0) {
+          tCandidates.push({ t: (height - cy) / dy, edge: 'bottom' });
+        } else if (dy < 0) {
+          tCandidates.push({ t: -cy / dy, edge: 'top' });
+        }
+        
+        let minT = Infinity;
+        let selectedEdge = 'bottom';
+        tCandidates.forEach(cand => {
+          if (cand.t > 0 && cand.t < minT) {
+            minT = cand.t;
+            selectedEdge = cand.edge;
+          }
+        });
+        
+        edge = selectedEdge;
+        
+        if (edge === 'top' || edge === 'bottom') {
+          baseCenter = cx + minT * dx;
+        } else {
+          baseCenter = cy + minT * dy;
+        }
+      }
+      
+      const edgeLength = (edge === 'top' || edge === 'bottom') ? width : height;
+      const baseW = edgeLength * 0.20;
+      
+      if (edge === 'top' || edge === 'bottom') {
+        baseCenter = Math.max(r + baseW / 2, Math.min(width - r - baseW / 2, baseCenter));
+      } else {
+        baseCenter = Math.max(r + baseW / 2, Math.min(height - r - baseW / 2, baseCenter));
+      }
       
       pathD = `M ${r} 0 `;
       
       // Top Edge
-      if (minD === dTop) {
-        const baseCenter = Math.max(r + baseW/2, Math.min(width - r - baseW/2, tx));
+      if (edge === 'top') {
         pathD += `L ${baseCenter - baseW/2} 0 L ${tx} ${ty} L ${baseCenter + baseW/2} 0 L ${width - r} 0 `;
       } else {
         pathD += `L ${width - r} 0 `;
@@ -459,8 +500,7 @@ function getBubblePathData(bubble, width, height) {
       pathD += `A ${r} ${r} 0 0 1 ${width} ${r} `;
       
       // Right Edge
-      if (minD === dRight) {
-        const baseCenter = Math.max(r + baseW/2, Math.min(height - r - baseW/2, ty));
+      if (edge === 'right') {
         pathD += `L ${width} ${baseCenter - baseW/2} L ${tx} ${ty} L ${width} ${baseCenter + baseW/2} L ${width} ${height - r} `;
       } else {
         pathD += `L ${width} ${height - r} `;
@@ -468,8 +508,7 @@ function getBubblePathData(bubble, width, height) {
       pathD += `A ${r} ${r} 0 0 1 ${width - r} ${height} `;
       
       // Bottom Edge
-      if (minD === dBottom) {
-        const baseCenter = Math.max(r + baseW/2, Math.min(width - r - baseW/2, tx));
+      if (edge === 'bottom') {
         pathD += `L ${baseCenter + baseW/2} ${height} L ${tx} ${ty} L ${baseCenter - baseW/2} ${height} L ${r} ${height} `;
       } else {
         pathD += `L ${r} ${height} `;
@@ -477,8 +516,7 @@ function getBubblePathData(bubble, width, height) {
       pathD += `A ${r} ${r} 0 0 1 0 ${height - r} `;
       
       // Left Edge
-      if (minD === dLeft) {
-        const baseCenter = Math.max(r + baseW/2, Math.min(height - r - baseW/2, ty));
+      if (edge === 'left') {
         pathD += `L 0 ${baseCenter + baseW/2} L ${tx} ${ty} L 0 ${baseCenter - baseW/2} L 0 ${r} `;
       } else {
         pathD += `L 0 ${r} `;
@@ -595,18 +633,25 @@ function getBubbleSvgMarkup(bubble, width, height, canvasW, canvasH) {
   
   const { pathD, extraCircles } = getBubblePathData(bubble, width, height);
   
-  let extraElements = '';
+  let extraSvg = '';
   if (extraCircles && extraCircles.length > 0) {
-    extraElements = extraCircles.map(c => 
-      `<circle cx="${c.cx}" cy="${c.cy}" r="${c.r}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeW}" />`
+    const circlesMarkup = extraCircles.map(c => 
+      `<circle cx="${c.cx}" cy="${c.cy}" r="${c.r}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeW}" vector-effect="non-scaling-stroke" />`
     ).join('\n');
+    
+    // Secondary SVG overlay to keep thought tail circles perfectly circular
+    extraSvg = `
+      <svg class="bubble-svg" viewBox="0 0 ${width} ${height}" style="position: absolute; top:0; left:0; width:100%; height:100%;" overflow="visible">
+        ${circlesMarkup}
+      </svg>
+    `;
   }
   
   return `
-    <svg class="bubble-svg" viewBox="0 0 ${width} ${height}" overflow="visible">
-      <path d="${pathD}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeW}" stroke-linejoin="round" />
-      ${extraElements}
+    <svg class="bubble-svg" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" style="position: absolute; top:0; left:0; width:100%; height:100%;" overflow="visible">
+      <path d="${pathD}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeW}" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
     </svg>
+    ${extraSvg}
   `;
 }
   
@@ -1283,8 +1328,8 @@ function drawBubbleOnCanvas(ctx, bubble, canvasW, canvasH) {
   ctx.font = `bold ${fontSize}px ${bubble.fontFamily}`;
   ctx.textBaseline = 'middle';
   
-  // Horizontal margins inside the bubble (using fixed scaled padding to prevent overflows)
-  const padX = Math.min(w * 0.12, 16 * (canvasW / 1000));
+  // Horizontal margins inside the bubble (using relative 5% padding to match the editor)
+  const padX = w * 0.05;
   const maxTextW = w - 2 * padX;
   
   // Parse rich text segments and wrap them

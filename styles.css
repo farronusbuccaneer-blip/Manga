@@ -755,14 +755,14 @@ input, textarea, select, button {
 
 .bubble-text-container {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  top: 5%;
+  left: 5%;
+  width: 90%;
+  height: 90%;
   display: flex;
   align-items: center;
   box-sizing: border-box;
-  padding: 6px 12px; /* Fixed padding prevents thin boxes (like titles) from overflowing */
+  padding: 0; /* Padding is handled by percentage offsets above */
   overflow: hidden;
   pointer-events: auto; /* Catch pointer interactions for selection & dragging */
   cursor: move;
